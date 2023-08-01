@@ -106,7 +106,7 @@ The output is written into netCDF files, the structure of which is copied from t
 
 # Acknowledgement 
 
-This work was supported by the Natural Environment Research Council award number NE/S017380/1 as part of the Hydro-JULES programme.
+This work was supported by the Natural Environment Research Council award number NE/S017380/1 as part of the Hydro-JULES programme <https://hydro-jules.org/>.
 
 # References
 
