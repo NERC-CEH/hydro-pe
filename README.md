@@ -21,6 +21,8 @@ It also provides several libraries:
     python ./setup.py build
     python ./setup.py install
 
+`hydro-pe` requires python 3.5 or above. The major requirements are `netCDF4` and `numpy`, but requirements will be handled by `setup.py`.
+
 # Hydro-PE calculations
 
 Details of the calculations are available in the associated data paper in Earth System Science Data [[1]](#references).
