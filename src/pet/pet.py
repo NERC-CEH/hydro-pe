@@ -322,13 +322,32 @@ def interc_rf(ppt, lai, enhance):
 def interc_corr(pet_t, pet_i, interc, D):
 
     # Time to evaporate all intercepted water (hours)
-    t_to_dry = interc/pet_i * D
+    # If the PEI is zero (or less) then canopy stays wet for whole day
+    t_to_dry = np.where(pet_i <= 0.0, D, interc/pet_i * D)
 
-    pet_i_corr = interc
+    # If the canopy takes longer than a day to dry out, set the drying time to 
+    # one day to make the maths work below
+    t_to_dry[t_to_dry > D ] = D
+
+    if np.any(t_to_dry < 0):
+        sys.exit("Error can't have negative time")
+
+    if np.any(t_to_dry > D):
+        sys.exit("Error can't have time more than one day")
+
+    # If PEI is less than zero, then there's condensation not interception
+    # If it's more than zero then we first assume we evaporate all the 
+    # water on the canopy
+    pet_i_corr = np.where(pet_i <= 0.0, pet_i, interc)
+
+    # BUT if it takes a day (or longer) to dry the canopy, then the 
+    # interception is PEI all day, and the amount evaporated is less than the 
+    # total canopy store
+    pet_i_corr[t_to_dry == D] = pet_i[t_to_dry == D]
+
+    # Transpiration is based on how long the canopy is wet for (if PEI < 0 or
+    # drying time > one day, then we have set t_to_dry=D, so makes PET zero)
     pet_t_corr = (D - t_to_dry)*pet_t/D
-
-    pet_i_corr[t_to_dry >= D] = pet_i[t_to_dry >= D]
-    pet_t_corr[t_to_dry >= D] = 0.0
 
     # mm
     return pet_t_corr, pet_i_corr
