@@ -499,7 +499,7 @@ def main():
             swnet = [net_SW(sw, albedo) for sw in swdown]
 
         if not netlw:
-            lwnet = [net_LW(lw, ta, emiss) for lw, ta in zip(lwdown, tair)]
+            lwnet = [net_LW(lw, ta, const.emiss) for lw, ta in zip(lwdown, tair)]
 
         if verbose:
             print("    available energy")
