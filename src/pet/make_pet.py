@@ -84,11 +84,18 @@ def parse_input():
                         help="Output day and night (and times) "
                              "as well as total(s)",
                         required=False, action="store_true")
+    parser.add_argument("-G", "--precipscalegridfilevarmn",
+                        help="Precip scale grid file, variable and month variable", nargs=3,
+                        default=[None, None, None])
     parser.add_argument("-C", "--co2filevaryr",
                         help="CO2 file, variable and baseline year", nargs=3,
                         default=[None, None, None])
     parser.add_argument("-N", "--netradiation",
                         help="Input net radiation", action="store_true")
+    parser.add_argument("-c", "--docorr",
+                        help="Apply correction for net radiation calculated "
+                             "with air temperature instead of surface "
+                             "temperature in LWup", action="store_true")
     parser.add_argument("--timevar",
                         help="Time variable",
                         required=False, default="time")
@@ -131,6 +138,8 @@ def parse_input():
             "psurf": args.psurfvar
             }
 
+        # Check if the correction factor is required
+        docorr = args.docorr
     else:
 
         varns = {
@@ -141,6 +150,10 @@ def parse_input():
             "lwdown": args.lwvar,
             "psurf": args.psurfvar
             }
+
+        # Always do the correction if we're calculating the net radiation
+        # within the code
+        docorr = True
 
     if args.interception:
         varns["precip"] = args.precipvar
@@ -173,7 +186,11 @@ def parse_input():
         args.co2filevaryr[0], \
         args.co2filevaryr[1], \
         co2yr, \
+        args.precipscalegridfilevarmn[0], \
+        args.precipscalegridfilevarmn[1], \
+        args.precipscalegridfilevarmn[2], \
         args.netradiation, \
+        args.docorr, \
         args.groundheatflux, \
         args.toffset, \
         args.pscale, \
@@ -200,7 +217,8 @@ def main():
     # Parse the input
     datafiletmplt, outfilename, varns, interception, daynight, \
         zlib, zneg, version, verbose, qdefnotneg, fullout, \
-        co2file, co2var, co2yr, netradiation, groundheatflux, \
+        co2file, co2var, co2yr, precipscalegridfile, precipscalegridvar, \
+        precipscalegridmn, netradiation, docorr, groundheatflux, \
         toffset, pscale, precipscale, windthresh, timevar, latvar, lonvar, \
         gridmapvar, user, email = parse_input()
 
@@ -214,6 +232,17 @@ def main():
         co2, co2yrs, co2_baseline = utils.read_co2_file(co2file, co2var,
                                                         co2yr,
                                                         timevar=timevar)
+
+    ########################################################
+    # Read precip scale grid
+    if precipscalegridfile is None:
+        precipscalegrid = None
+    else:
+        if verbose:
+            print("Read precip scale grid file")
+        precipscalegrid, precipmonths = utils.read_precipscalegrid_file(
+                            precipscalegridfile, precipscalegridvar,
+                            monthvar=precipscalegridmn)
 
     ########################################################
     # Loop over required variables
@@ -277,6 +306,15 @@ def main():
         if verbose:
             print("Scaling precipitation by %f" % precipscale)
         data["precip"] *= precipscale
+
+    if precipscalegrid is not None:
+        if verbose:
+            print("Scaling precipitation by %s in %s" % (precipscalegridvar,
+                                                         precipscalegridfile))
+        data["precip"] = utils.scale_precip_grid(data["precip"],
+                                                 dimvardata["month"],
+                                                 precipscalegrid,
+                                                 precipmonths)
 
     # Make the new array
     if ne == 0:
@@ -401,11 +439,9 @@ def main():
             print("    available energy")
         if netradiation:
             # Radiation is the sum of the net components
-            docorr = False
             Rn = [lw+sw for lw, sw in zip(lwnet, swnet)]
 
         else:
-            docorr = True
             ########################################
             # Calculate albedo
             if interception:
@@ -505,7 +541,7 @@ def main():
                                               interc - pet_i_day,
                                               0.0)
 
-                # Apply correction to nighttime PET, using remaining 
+                # Apply correction to nighttime PET, using remaining
                 # canopy storage
                 pet_t_night, pet_i_night = interc_corr(pet_t_p[1],
                                                        pet_i_p[1],

@@ -41,6 +41,8 @@ The basic useage is
 
 `--interception` / `-i` The default behaviour is to calculate PET. This option enables the interception correction.
 
+`--docorr` / `-c` If net longwave radiation is not known, then the upward component can be approximated by calculating it using air temperature as a proxy for surface temperature. In this case, a correction to the Penman-Monteith equation is applied [[2]](#references). If the radiation inputs are net radiation variables that have been calculated using this approximation, then this flag enables the Penman-Monteith correction, otherwise net radiation inputs will be assumed to be calculated with surface temperature. If the radiation inputs are downward radiation variables, then this flag is overridden, as the upward longwave is calculated using the air temperature approximation in the code, so the Penman-Monteith correction is required.
+
 `--qdefnotneg` / `-Q` The Penman-Monteith calculation uses specific humidity, following Stewart (1989) [[3]](#references). The specific humidity at saturation is calculated using an empirical fit to vapour pressure at saturation [[4]](#references). In cases where the input specific humidity is greater than the calculated specific humidity at saturation, then this option can be used to set the humidity defecit to zero.
 
 `--co2filevaryr FILENAME VARNAME YEAR` / `-C FILENAME VARNAME YEAR` In order to account for the response of plant stomatal conductance to rising CO₂ levels, a fertilisation effect may be applied [[5]](#references) by using this option to specify 
@@ -65,6 +67,8 @@ The basic useage is
 `--pscale SCALE` / `-S SCALE` Applies a scale factor to the surface air pressure variable. If the input surface air pressur is in hPa then a scale of 100 can be used to convert to the expected input units of Pa.
 
 `--precipscale SCALE` / `-L SCALE` Applies a scale factor to the precipitation variable. If the input precipitation is in kg m⁻² s⁻¹ then a scale of 86400 can be used to convert to the expected input units of mm d⁻¹.
+
+`--precipscalegridfilevarmn FILENAME VARNAME MNVARNAME` / `-G FILENAME VARNAME MNVARNAME` Applies a grid of monthly scale factors to the precipitation variable. The scale factors are defined in the file FILENAME, in the variable VARNAME. The variable containing the month is MNVARNAME.
 
 ## Input variables
 

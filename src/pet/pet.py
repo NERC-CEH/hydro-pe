@@ -294,11 +294,17 @@ def interc_rf(ppt, lai, enhance):
     p = 1.0 - 0.5**lai
     interc = p*ppt
 
-    interc[interc > (0.2*lai)] = 0.2*lai
+    if np.ma.isMA(interc):
+        interc[np.logical_and(interc > (0.2*lai),~interc.mask)] = 0.2*lai
+    else:
+        interc[interc > (0.2*lai)] = 0.2*lai
 
     interc *= enhance
 
-    interc[interc > ppt] = ppt[interc > ppt]
+    if np.ma.isMA(interc):
+        interc[np.logical_and(interc > ppt, interc.mask)] = ppt[np.logical_and(interc > ppt, interc.mask)]
+    else:
+        interc[interc > ppt] = ppt[interc > ppt]
 
     return interc
 

@@ -168,6 +168,28 @@ def read_co2_file(infname, varn, co2yr, timevar='time'):
 
     return co2, co2yrs, co2_baseline
 
+def read_precipscalegrid_file(infname, varn, monthvar='Months'):
+
+    pf = nc.Dataset(infname, "r")
+    precipscalegrid = pf.variables[varn][:]
+
+    months = pf.variables[monthvar][:]
+
+    if np.any(months<1) or np.any(months>12):
+        sys.exit("Error: months must be an integer in the range [1,12]")
+    pf.close()
+
+    return precipscalegrid, months
+
+def scale_precip_grid(indata, months, scalegrid, scalemonths):
+
+    if np.ma.isMA(indata) or np.ma.isMA(scalegrid):
+        outdata = np.ma.array([ind*scalegrid[scalemonths==mn][0] for ind, mn in zip(indata, months)])
+    else:
+        outdata = np.array([ind*scalegrid[scalemonths==mn][0] for ind, mn in zip(indata, months)])
+
+    return outdata
+
 def read_input_data(datafiletmplt, varns, verbose=False,
                     timevar="time"):
     data = {}
