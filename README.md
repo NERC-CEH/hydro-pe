@@ -40,43 +40,42 @@ The basic useage is
 ## Options
 
 `--interception` / `-i`
-The default behaviour is to calculate PET. This option enables the interception correction.
+: The default behaviour is to calculate PET. This option enables the interception correction.
 
 `--qdefnotneg` / `-Q`
-
-The Penman-Monteith calculation uses specific humidity, following Stewart (1989) [[3]](#references). The specific humidity at saturation is calculated using an empirical fit to vapour pressure at saturation [[4]](#references). In cases where the input specific humidity is greater than the calculated specific humidity at saturation, then this option can be used to set the humidity defecit to zero.
+: The Penman-Monteith calculation uses specific humidity, following Stewart (1989) [[3]](#references). The specific humidity at saturation is calculated using an empirical fit to vapour pressure at saturation [[4]](#references). In cases where the input specific humidity is greater than the calculated specific humidity at saturation, then this option can be used to set the humidity defecit to zero.
 
 `--co2filevaryr FILENAME VARNAME YEAR` / `-C FILENAME VARNAME YEAR`
-In order to account for the response of plant stomatal conductance to rising CO₂ levels, a fertilisation effect may be applied [[5]](#references) by using this option to specify 
+: In order to account for the response of plant stomatal conductance to rising CO₂ levels, a fertilisation effect may be applied [[5]](#references) by using this option to specify 
 - `FILENAME` a netCDF file containing annual CO₂ concentrations in PPMV
 - `VARNAME` the variable name in the file
 - `YEAR` the year to use as the baseline (before which the stomatal conductance will not be adjusted).
 
 `--daynight` / `-D`
-The PET and PETI may be calcuated directly from daily mean values, or it may optionally be separated into daytime and nighttime components by applying a diurnal cycle [[6]](#references). This option `is not available if net radiation inputs are used. 
+: The PET and PETI may be calcuated directly from daily mean values, or it may optionally be separated into daytime and nighttime components by applying a diurnal cycle [[6]](#references). This option `is not available if net radiation inputs are used. 
 
 `--fullout` / `-f`
-If `--daynight` is used, then this option will enable output of the day- and nighttime values, as well as the overall PET or PETI.
+: If `--daynight` is used, then this option will enable output of the day- and nighttime values, as well as the overall PET or PETI.
 
 `--zeroneg` / `-z`
-If the output PET or PETI is negative, this option will set all negative values to zero.
+: If the output PET or PETI is negative, this option will set all negative values to zero.
 
 `--groundheatflux OPTION`
-This option allows selection of the method to calculate ground heat flux. The available options are 
+: This option allows selection of the method to calculate ground heat flux. The available options are 
 - `morecs` calculate ground heat flux following MORECS 2.0 (default)
 - `zero` does not calculate ground heat flux.
 
 `--windthresh THRESHOLD` / `-W THRESHOLD`
-Applies a minimum threshold to the wind speed variable. All wind speed values less than `THRESHOLD` are set equal to the threshold value.
+: Applies a minimum threshold to the wind speed variable. All wind speed values less than `THRESHOLD` are set equal to the threshold value.
 
 `--toffset OFFSET` / `-T OFFSET`
-Applies an offset to the air temperature variable. If the input air temperature is in °C then use an offset of 273.15 to convert to the expected input units of K.
+: Applies an offset to the air temperature variable. If the input air temperature is in °C then use an offset of 273.15 to convert to the expected input units of K.
 
 `--pscale SCALE` / `-S SCALE`
-Applies a scale factor to the surface air pressure variable. If the input surface air pressur is in hPa then a scale of 100 is used to convert to the expected input units of Pa.
+: Applies a scale factor to the surface air pressure variable. If the input surface air pressur is in hPa then a scale of 100 is used to convert to the expected input units of Pa.
 
 `--precipscale SCALE` / `-L SCALE`
-Applies a scale factor to the precipitation variable. If the input precipitation is in kg m⁻² s⁻¹ then a scale of 86400 is used to convert to the expected input units of mm d⁻¹.
+: Applies a scale factor to the precipitation variable. If the input precipitation is in kg m⁻² s⁻¹ then a scale of 86400 is used to convert to the expected input units of mm d⁻¹.
 
 ## Input variables
 
@@ -100,28 +99,32 @@ The radiation variables may either be input as net or downward. In the latter ca
 In addition, the names of some other variables may be required.
 
 `--timevar VARNAME`
-Specifies the name of the time variable in the input file. If not specified, the default value is `time`.
+: Specifies the name of the time variable in the input file. If not specified, the default value is `time`.
 
 `--latvar VARNAME`
-Specifies the name of the latitude variable in the input file. If not specified, the default value is `lat`. This is only required if `--daynight` / `-D` is used.
+: Specifies the name of the latitude variable in the input file. If not specified, the default value is `lat`. This is only required if `--daynight` / `-D` is used.
 
 `--lonvar VARNAME`
-Specifies the name of the longitude variable in the input file. If not specified, the default value is `lon`. This is only required if `--daynight` / `-D` is used.
+: Specifies the name of the longitude variable in the input file. If not specified, the default value is `lon`. This is only required if `--daynight` / `-D` is used.
 
 `--gridmapvar VARNAME`
-Specifies the name of the grid mapping variable in the input file to ensure it is applied to the output netCDF file. If not specified, then the grid mapping variable is not used.
+: Specifies the name of the grid mapping variable in the input file to ensure it is applied to the output netCDF file. If not specified, then the grid mapping variable is not used.
 
 ## Output files
 The output is written into netCDF files, the structure of which is copied from the input netCDF files. Extra options may be specified.
 
 `--version VERSION` / `-V VERSION`
-Version number to be written in the metadata of the output netCDF file. Default is v1.0.
+: Version number to be written in the metadata of the output netCDF file. Default is v1.0.
 
 `--user USER` / `-u USER`
-User name to be written in the metadata of the output netCDF file. If not specified, then no user will be written.
+: User name to be written in the metadata of the output netCDF file. If not specified, then no user will be written.
 
 `--email EMAIL` / `-e EMAIL`
-Email address to be written in the metadata of the output netCDF file. If not specified, then no email will be written.
+: Email address to be written in the metadata of the output netCDF file. If not specified, then no email will be written.
+
+# Acknowledgement 
+
+This work was supported by the Natural Environment Research Council award number NE/S017380/1 as part of the Hydro-JULES programme.
 
 # References
 
