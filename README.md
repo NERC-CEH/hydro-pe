@@ -60,11 +60,11 @@ The basic useage is
 
 `--windthresh THRESHOLD` / `-W THRESHOLD` Applies a minimum threshold to the wind speed variable. All wind speed values less than `THRESHOLD` are set equal to the threshold value.
 
-`--toffset OFFSET` / `-T OFFSET` Applies an offset to the air temperature variable. If the input air temperature is in °C then use an offset of 273.15 to convert to the expected input units of K.
+`--toffset OFFSET` / `-T OFFSET` Applies an offset to the air temperature variable. If the input air temperature is in °C then an offset of 273.15 can be used to convert to the expected input units of K.
 
-`--pscale SCALE` / `-S SCALE` Applies a scale factor to the surface air pressure variable. If the input surface air pressur is in hPa then a scale of 100 is used to convert to the expected input units of Pa.
+`--pscale SCALE` / `-S SCALE` Applies a scale factor to the surface air pressure variable. If the input surface air pressur is in hPa then a scale of 100 can be used to convert to the expected input units of Pa.
 
-`--precipscale SCALE` / `-L SCALE` Applies a scale factor to the precipitation variable. If the input precipitation is in kg m⁻² s⁻¹ then a scale of 86400 is used to convert to the expected input units of mm d⁻¹.
+`--precipscale SCALE` / `-L SCALE` Applies a scale factor to the precipitation variable. If the input precipitation is in kg m⁻² s⁻¹ then a scale of 86400 can be used to convert to the expected input units of mm d⁻¹.
 
 ## Input variables
 
