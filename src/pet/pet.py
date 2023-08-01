@@ -218,9 +218,16 @@ def get_albedo(lai, a_c, a_s_d, a_s_w, precip,
 #   = SWdown-(albedo*SWdown) + LWdown - (emiss*sigma*T^4 + (1-emiss)LWdown)
 #   = SWdown*(1-albedo) + emiss*(LWdown-sigma*T^4)
 ###############################################################################
+def net_SW(swdown, albedo):
+    SWnet = (swdown*(1.0-albedo))
+    return SWnet
+
+def net_LW(lwdown, tair, emiss):
+    LWnet = (emiss*(lwdown-(const.sigma*tair*tair*tair*tair)))
+    return LWnet
+
 def net_radiation(swdown, lwdown, tair, albedo, emiss):
-    A = (swdown*(1.0-albedo)) + \
-        (emiss*(lwdown-(const.sigma*tair*tair*tair*tair)))
+    A = net_SW(swdown, albedo) + net_LW(lwdown, tair, emiss)
     return A
 
 
@@ -302,7 +309,7 @@ def interc_rf(ppt, lai, enhance):
     interc *= enhance
 
     if np.ma.isMA(interc):
-        interc[np.logical_and(interc > ppt, interc.mask)] = ppt[np.logical_and(interc > ppt, interc.mask)]
+        interc[np.logical_and(interc > ppt, ~interc.mask)] = ppt[np.logical_and(interc > ppt, ~interc.mask)]
     else:
         interc[interc > ppt] = ppt[interc > ppt]
 

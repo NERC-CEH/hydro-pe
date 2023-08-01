@@ -4,3 +4,4 @@ from . import constants
 from . import solar
 from . import make_pet
 from . import mask_file
+from . import combine_peti_components

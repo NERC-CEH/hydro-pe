@@ -191,10 +191,11 @@ def scale_precip_grid(indata, months, scalegrid, scalemonths):
     return outdata
 
 def read_input_data(datafiletmplt, varns, verbose=False,
-                    timevar="time"):
+                    timevar="time", exclude=[]):
     data = {}
     dims = {}
     dimvardata = {}
+    read_dimvarns = True
     for varn, invarn in varns.items():
         if verbose:
             print("    read ", varn)
@@ -218,10 +219,9 @@ def read_input_data(datafiletmplt, varns, verbose=False,
 
         ################################################
         # Get dimension variables from one of the files
-        # (choose tair arbitrarily)
-        if varn == "tair":
+        if read_dimvarns:
             for dvarn in f.variables:
-                if dvarn != invarn:
+                if dvarn not in varns:
                     if verbose:
                         print("    ", dvarn)
 
@@ -264,6 +264,7 @@ def read_input_data(datafiletmplt, varns, verbose=False,
                                             mask=dimvardata[dvarn].mask,
                                             fill_value=data[varn].fill_value)
 
+            read_dimvarns = False
 
         ################################################
         # Close file

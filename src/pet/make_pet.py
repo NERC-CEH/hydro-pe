@@ -90,8 +90,12 @@ def parse_input():
     parser.add_argument("-C", "--co2filevaryr",
                         help="CO2 file, variable and baseline year", nargs=3,
                         default=[None, None, None])
-    parser.add_argument("-N", "--netradiation",
-                        help="Input net radiation", action="store_true")
+    parser.add_argument("--netradiation",
+                        help="Input net shortwave and longwave radiation", action="store_true")
+    parser.add_argument("--netsw",
+                        help="Input net shortwave radiation", action="store_true")
+    parser.add_argument("--netlw",
+                        help="Input net longwave radiation", action="store_true")
     parser.add_argument("-c", "--docorr",
                         help="Apply correction for net radiation calculated "
                              "with air temperature instead of surface "
@@ -115,6 +119,9 @@ def parse_input():
     parser.add_argument("-i", "--interception",
                         help="Do interception correction",
                         required=False, action="store_true")
+    parser.add_argument("-O", "--outputcomponents",
+                        help="Output PET and PEI instead of PETI",
+                        required=False, action="store_true")
     parser.add_argument("-D", "--daynight",
                         help="Do separate day and night calculations",
                         required=False, action="store_true")
@@ -128,35 +135,50 @@ def parse_input():
 
     args = parser.parse_args()
 
+    varns = {
+        "tair": args.tairvar,
+        "qair": args.qairvar,
+        "wind10": args.windvar,
+        "psurf": args.psurfvar
+        }
     if args.netradiation:
-        varns = {
-            "tair": args.tairvar,
-            "qair": args.qairvar,
-            "wind10": args.windvar,
-            "swnet": args.swvar,
-            "lwnet": args.lwvar,
-            "psurf": args.psurfvar
-            }
-
+        if args.netsw or args.netlw:
+            sys.exit("Error: either specify --netradiation, or one or both of --netsw or --netlw")
+        netlw = True
+        netsw = True
+        varns["swnet"] = args.swvar
+        varns["lwnet"] = args.lwvar
         # Check if the correction factor is required
         docorr = args.docorr
     else:
 
-        varns = {
-            "tair": args.tairvar,
-            "qair": args.qairvar,
-            "wind10": args.windvar,
-            "swdown": args.swvar,
-            "lwdown": args.lwvar,
-            "psurf": args.psurfvar
-            }
+        if args.netsw:
+            varns["swnet"] = args.swvar
+        else:
+            varns["swdown"] = args.swvar
 
-        # Always do the correction if we're calculating the net radiation
-        # within the code
-        docorr = True
+        if args.netlw:
+            varns["lwnet"] = args.lwvar
+
+            # Check if the correction factor is required
+            docorr = args.docorr
+
+        else:
+            varns["lwdown"] = args.lwvar
+
+            # Always do the correction if we're calculating the net radiation
+            # within the code
+            docorr = True
+
+        netsw = args.netsw
+        netlw = args.netlw
 
     if args.interception:
-        varns["precip"] = args.precipvar
+        if not args.outputcomponents:
+            varns["precip"] = args.precipvar
+    else:
+        if args.outputcomponents:
+            sys.exit("Error: can't output components unless calculating interception")
 
     if args.daynight:
         varns["dtr"] = args.dtrvar
@@ -169,7 +191,7 @@ def parse_input():
     if args.groundheatflux not in ["morecs", "zero"]:
         sys.exit("Error: unknown groundheatflux type: <%s>"%args.groundheatflux)
 
-    if args.daynight and args.netradiation:
+    if args.daynight and (netsw or netlw):
         sys.exit("Error: Can't do daily disaggregation with net radiation")
 
     return string.Template(args.datafiletmplt), \
@@ -189,7 +211,8 @@ def parse_input():
         args.precipscalegridfilevarmn[0], \
         args.precipscalegridfilevarmn[1], \
         args.precipscalegridfilevarmn[2], \
-        args.netradiation, \
+        netsw, \
+        netlw, \
         args.docorr, \
         args.groundheatflux, \
         args.toffset, \
@@ -201,7 +224,8 @@ def parse_input():
         args.lonvar, \
         args.gridmapvar, \
         args.user, \
-        args.email
+        args.email, \
+        args.outputcomponents
 
 
 ###############################################################################
@@ -218,9 +242,9 @@ def main():
     datafiletmplt, outfilename, varns, interception, daynight, \
         zlib, zneg, version, verbose, qdefnotneg, fullout, \
         co2file, co2var, co2yr, precipscalegridfile, precipscalegridvar, \
-        precipscalegridmn, netradiation, docorr, groundheatflux, \
+        precipscalegridmn, netsw, netlw, docorr, groundheatflux, \
         toffset, pscale, precipscale, windthresh, timevar, latvar, lonvar, \
-        gridmapvar, user, email = parse_input()
+        gridmapvar, user, email, outputcomponents = parse_input()
 
     ########################################################
     # Read CO2
@@ -265,17 +289,31 @@ def main():
 
     # get attributes
     if interception:
-        outvarn = "peti"
+        if outputcomponents:
+            outvarn_t = "pet"
+            outvarn_i = "pei"
+        else:
+            outvarn = "peti"
     else:
         outvarn = "pet"
-    outvarns = {
-        outvarn: utils.get_var_attrs(datafiletmplt.substitute(varn=varns["tair"]),
-        varns["tair"])
-    }
+    if outputcomponents:
+        outvarns = {
+            varn: utils.get_var_attrs(datafiletmplt.substitute(varn=varns["tair"]), varns["tair"])
+            for varn in [outvarn_t, outvarn_i]
+        }
+    else:
+        outvarns = {
+            outvarn: utils.get_var_attrs(datafiletmplt.substitute(varn=varns["tair"]),
+            varns["tair"])
+        }
 
     # Check fill value
-    if '_FillValue' in outvarns[outvarn]:
-        mv = outvarns[outvarn]['_FillValue']
+    if interception and not outputcomponents:
+        testvarn = 'peti'
+    else:
+        testvarn = 'pet'
+    if '_FillValue' in outvarns[testvarn]:
+        mv = outvarns[testvarn]['_FillValue']
     else:
         mv = -1e20
 
@@ -318,12 +356,21 @@ def main():
 
     # Make the new array
     if ne == 0:
-        pet = np.ma.masked_equal(np.ones([nt, ny, nx])*mv, mv)
+        if outputcomponents:
+            pet_t_out = np.ma.masked_equal(np.ones([nt, ny, nx])*mv, mv)
+            pet_i_out = np.ma.masked_equal(np.ones([nt, ny, nx])*mv, mv)
+        else:
+            pet = np.ma.masked_equal(np.ones([nt, ny, nx])*mv, mv)
     else:
-        pet = np.ma.masked_equal(np.ones([ne, nt, ny, nx])*mv, mv)
+        if outputcomponents:
+            pet_t_out = np.ma.masked_equal(np.ones([nt, ne, ny, nx])*mv, mv)
+            pet_i_out = np.ma.masked_equal(np.ones([nt, ne, ny, nx])*mv, mv)
+        else:
+            pet = np.ma.masked_equal(np.ones([nt, ne, ny, nx])*mv, mv)
 
     # Loop over timesteps
     for t in range(nt):
+
         if verbose:
             print("Timestep ", t)
 
@@ -354,6 +401,7 @@ def main():
         ########################################################
         # MET CALCULATIONS
         lai = const.lai[dimvardata["month"][t]-1]
+
         if daynight:
             # Get day/night air temperature
             tair = get_daynight_tair(data["tair"][t, :],
@@ -367,7 +415,7 @@ def main():
                                      data["psurf"][t, :],
                                      tair[0], tair[1])
 
-            if netradiation:
+            if netsw or netlw:
                 sys.exit("Error: can't do separate day/night calculations "
                          "with net radiation")
             else:
@@ -411,11 +459,13 @@ def main():
         else:
             tair = [data["tair"][t, :],]
             qair = [data["qair"][t, :],]
-            if netradiation:
+            if netsw:
                 swnet = [data["swnet"][t, :],]
-                lwnet = [data["lwnet"][t, :],]
             else:
                 swdown = [data["swdown"][t, :],]
+            if netlw:
+                lwnet = [data["lwnet"][t, :],]
+            else:
                 lwdown = [data["lwdown"][t, :],]
 
             ########################################################
@@ -434,14 +484,9 @@ def main():
             # Time period length
             Ds = [const.daylen_sec,]
 
-
-        if verbose:
-            print("    available energy")
-        if netradiation:
-            # Radiation is the sum of the net components
-            Rn = [lw+sw for lw, sw in zip(lwnet, swnet)]
-
-        else:
+        ######################################################
+        # Calculate the net radiation components if required
+        if not netsw:
             ########################################
             # Calculate albedo
             if interception:
@@ -451,11 +496,17 @@ def main():
                 albedo = get_albedo(lai, const.albedo_c, const.albedo_s_dry,
                                     const.albedo_s_wet,
                                     np.zeros_like(data["tair"][t, :]))
+            swnet = [net_SW(sw, albedo) for sw in swdown]
 
-            ########################################
-            # Calculate net radiation
-            Rn = [net_radiation(sw, lw, ta, albedo, const.emiss)
-                  for sw, lw, ta in zip(swdown, lwdown, tair)]
+        if not netlw:
+            lwnet = [net_LW(lw, ta, emiss) for lw, ta in zip(lwdown, tair)]
+
+        if verbose:
+            print("    available energy")
+
+        # Radiation is the sum of the net components
+        Rn = [lw+sw for lw, sw in zip(lwnet, swnet)]
+
 
         if daynight:
             # Ground heat flux
@@ -508,10 +559,7 @@ def main():
 
             ########################################
             # INTERCEPTION
-            # Intercepted proportion of rain
-            interc = interc_rf(data["precip"][t, :], lai,
-                               const.enhance[dimvardata["month"][t]-1])
-
+            # Potential interception
             pet_i_p = [get_pet(ta, qa, data["psurf"][t, :],
                               A, ra, 0.0, const.emiss, qdefnotneg,
                               docorr=docorr)
@@ -521,45 +569,64 @@ def main():
             # Convert to mm/time period
             pet_i_p = [pti*D/const.l for pti, D in zip(pet_i_p, Ds)]
 
-            ########################################
-            # Interception correction
-            # if there has been no rain then
-            # pet_t = pet_t_pot and pet_i = 0,
-            # otherwise the correction is applied
-            if verbose:
-                print("    interception correction")
-            if daynight:
-
-                # Apply correction to daytime PET, assuming all rain
-                # is in the canopy at the start of the day
-                pet_t_day, pet_i_day = interc_corr(pet_t_p[0], pet_i_p[0],
-                                                   interc, day_hours)
-
-                # Reduce the canopy storage by the amount evaporated
-                # during the day (can't be negative)
-                interc_start_night = np.where(interc - pet_i_day > 0,
-                                              interc - pet_i_day,
-                                              0.0)
-
-                # Apply correction to nighttime PET, using remaining
-                # canopy storage
-                pet_t_night, pet_i_night = interc_corr(pet_t_p[1],
-                                                       pet_i_p[1],
-                                                       interc_start_night,
-                                                       night_hours)
-
-                # Add day/night components
-                pet_t = pet_t_day + pet_t_night
-                pet_i = pet_i_day + pet_i_night
-
+            if outputcomponents:
+                ########################################
+                # Just output components, don't need to
+                # calculate the total
+                if daynight:
+                    pet_t_out[t, :] = pet_t_p[0] + pet_t_p[1]
+                    pet_i_out[t, :] = pet_i_p[0] + pet_i_p[1]
+                else:
+                    pet_t_out[t, :] = pet_t_p[0]
+                    pet_i_out[t, :] = pet_i_p[0]
             else:
-                # Apply canopy storage to total daily PET
-                pet_t, pet_i = interc_corr(pet_t_p[0], pet_i_p[0],
-                                           interc, const.daylen_hour)
 
-            ########################################
-            # add interception and transpiration
-            pet[t, :] = pet_t + pet_i
+                ########################################
+                # INTERCEPTION
+                # Intercepted proportion of rain
+                interc = interc_rf(data["precip"][t, :], lai,
+                                   const.enhance[dimvardata["month"][t]-1])
+
+                ########################################
+                # Interception correction
+                # if there has been no rain then
+                # pet_t = pet_t_pot and pet_i = 0,
+                # otherwise the correction is applied
+                if verbose:
+                    print("    interception correction")
+                if daynight:
+
+                    # Apply correction to daytime PET, assuming all rain
+                    # is in the canopy at the start of the day
+                    pet_t_day, pet_i_day = interc_corr(pet_t_p[0], pet_i_p[0],
+                                                       interc, day_hours)
+
+                    # Reduce the canopy storage by the amount evaporated
+                    # during the day (can't be negative)
+                    interc_start_night = np.where(interc - pet_i_day > 0,
+                                                  interc - pet_i_day,
+                                                  0.0)
+
+                    # Apply correction to nighttime PET, using remaining
+                    # canopy storage
+                    pet_t_night, pet_i_night = interc_corr(pet_t_p[1],
+                                                           pet_i_p[1],
+                                                           interc_start_night,
+                                                           night_hours)
+
+                    # Add day/night components
+                    pet_t = pet_t_day + pet_t_night
+                    pet_i = pet_i_day + pet_i_night
+
+                else:
+                    # Apply canopy storage to total daily PET
+                    pet_t, pet_i = interc_corr(pet_t_p[0], pet_i_p[0],
+                                               interc, const.daylen_hour)
+
+                ########################################
+                # add interception and transpiration
+                    pet[t, :] = pet_t + pet_i
+
 
         else:
             if daynight:
@@ -573,15 +640,24 @@ def main():
     if ne > 0:
         if verbose:
             print("Re-swap axes")
-        pet = pet.swapaxes(0, 1)
+        if outputcomponents:
+            pet_t_out = pet_t_out.swapaxes(0, 1)
+            pet_i_out = pet_i_out.swapaxes(0, 1)
+        else:
+            pet = pet.swapaxes(0, 1)
 
     ################################################
     # If asked, we set negative values to
-    # zero
+    # zero (only for total peti even if outputting
+    # components)
     if zneg:
         if verbose:
             print("    set negative values to zero")
-        pet[np.where(np.logical_and(pet < 0, ~pet.mask))] = 0.0
+        if outputcomponents:
+            pet_t_out[np.where(np.logical_and(pet_t_out < 0, ~pet_t_out.mask))] = 0.0
+            pet_i_out[np.where(np.logical_and(pet_i_out < 0, ~pet_i_out.mask))] = 0.0
+        else:
+            pet[np.where(np.logical_and(pet < 0, ~pet.mask))] = 0.0
 
     ########################################################
     # Create an output file
@@ -597,21 +673,44 @@ def main():
 
     ########################################################
     # PETI metadata
-    outvarattrs = {
-        outvarn: {
-            "units": "mm/day",
-            "standard_name": "water_potential_evaporation_amount",
-            "cell_methods": "time: mean"
-            }
-        }
-    if interception:
-        outvarattrs[outvarn]["long_name"] = "Potential evapotranspiration with interception correction"
+    if outputcomponents:
+        outvarattrs = {
+                varn: {
+                    "units": "mm/day",
+                    "standard_name": "water_potential_evaporation_amount",
+                    "cell_methods": "time: mean"
+                    }
+                for varn in [outvarn_t, outvarn_i]
+                }
     else:
-        outvarattrs[outvarn]["long_name"] = "Potential evapotranspiration"
-    if gridmapvar is not None:
-        outvarattrs[outvarn]["grid_mapping"] = gridmapvar
+        outvarattrs = {
+            outvarn: {
+                "units": "mm/day",
+                "standard_name": "water_potential_evaporation_amount",
+                "cell_methods": "time: mean"
+                }
+            }
 
-    utils.create_vars(of, {outvarn: outvarns[outvarn]}, {outvarn: outvarattrs[outvarn]})
+    if outputcomponents:
+        outvarattrs[outvarn_t]["long_name"] = "Potential transpiration"
+        outvarattrs[outvarn_i]["long_name"] = "Potential interception"
+    else:
+        if interception:
+            outvarattrs[outvarn]["long_name"] = "Potential evapotranspiration with interception correction"
+        else:
+            outvarattrs[outvarn]["long_name"] = "Potential evapotranspiration"
+    if gridmapvar is not None:
+        if outputcomponents:
+            for varn in [outvarn_t, outvarn_i]:
+                outvarattrs[varn]["grid_mapping"] = gridmapvar
+        else:
+            outvarattrs[outvarn]["grid_mapping"] = gridmapvar
+
+    if outputcomponents:
+        for varn in [outvarn_t, outvarn_i]:
+            utils.create_vars(of, {varn: outvarns[varn]}, {varn: outvarattrs[varn]})
+    else:
+        utils.create_vars(of, {outvarn: outvarns[outvarn]}, {outvarn: outvarattrs[outvarn]})
 
     ########################################################
     # Global metadata
@@ -638,17 +737,43 @@ def main():
         of.setncattr(attn, attr)
 
 
-    ########################################################
-    # create PETi variable
-    if verbose:
-        print("    writing peti")
-    if "_FillValue" not in outvarns[outvarn]:
-        if np.ma.is_masked(pet):
-            sys.exit("Error: not expecting masked data")
+    if outputcomponents:
+        ########################################################
+        # create component variables
+        if verbose:
+            print("    writing pet")
+        if "_FillValue" not in outvarns[outvarn_t]:
+            if np.ma.is_masked(pet_t_out):
+                sys.exit("Error: not expecting masked data")
+            else:
+                of.variables[outvarn_t][:] = pet_t_out.data[:]
         else:
-            of.variables[outvarn][:] = pet.data[:]
+            of.variables[outvarn_t][:] = pet_t_out[:]
+
+        if verbose:
+            print("    writing pei")
+        if "_FillValue" not in outvarns[outvarn_i]:
+            if np.ma.is_masked(pet_i_out):
+                sys.exit("Error: not expecting masked data")
+            else:
+                of.variables[outvarn_i][:] = pet_i_out.data[:]
+        else:
+            of.variables[outvarn_i][:] = pet_i_out[:]
+
     else:
-        of.variables[outvarn][:] = pet[:]
+        ########################################################
+        # create PETI variable
+        if verbose:
+            print("    writing peti")
+        if "_FillValue" not in outvarns[outvarn]:
+            if np.ma.is_masked(pet):
+                sys.exit("Error: not expecting masked data")
+            else:
+                of.variables[outvarn][:] = pet.data[:]
+        else:
+            of.variables[outvarn][:] = pet[:]
+
+
 
     of.close()
     if verbose:

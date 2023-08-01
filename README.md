@@ -3,10 +3,11 @@ A package to calculate Hydro-PE potential evapotranspiration from netCDF inputs.
 
 # Package contents
 
-This provides two scripts that can be called on the command line:
+This provides three scripts that can be called on the command line:
 
 - `make_pet` calculates potential evapotranspiration (PET) from meteorological data, optionally with an interception correction (PETI)
 - `mask_file` applies a land-sea mask to a file and fills in points that have been incorrectly categorised as sea with values from 'donor' land points
+- `combine_peti_components` combines monthly potential evapotranspiration (PET) and potential interception (PEI) rates to calculate daily PETI by scaling them in proportion to the amount of daily precipitation
 
 It also provides several libraries:
 
@@ -28,7 +29,9 @@ The output units of PET and PETI are mm d⁻¹.
 
 Hydro-PE calculates Penman-Monteith potential evapotranspiration (PET) parameterised for a short grass surface, with an optional correction for interception (PETI). It can be applied to observation based meteorological data sets or to the output of weather and climate models. Much of the methodology and parameterisations are based on the equations and parameters in MORECS 2.0 [[2]](#references), which was developed by the UK Met Office. This is motivated by the historical use of MORECS as a driver for hydrological models and allows for the calculation of equivalent PETI with other meteorological inputs.
 
-## Useage
+In addition, a tool is provided to combine monthly potential evapotranspiration and potential interception rates with daily precipitation to calculate daily PETI. This is useful in cases where precipitation is available daily, but other variables are only available monthly, for example for some climate model outputs.
+
+## `make_pet` useage
 
 The basic useage is
 
@@ -43,6 +46,12 @@ The basic useage is
 
 `--docorr` / `-c` If net longwave radiation is not known, then the upward component can be approximated by calculating it using air temperature as a proxy for surface temperature. In this case, a correction to the Penman-Monteith equation is applied [[2]](#references). If the radiation inputs are net radiation variables that have been calculated using this approximation, then this flag enables the Penman-Monteith correction, otherwise net radiation inputs will be assumed to be calculated with surface temperature. If the radiation inputs are downward radiation variables, then this flag is overridden, as the upward longwave is calculated using the air temperature approximation in the code, so the Penman-Monteith correction is required.
 
+`--netsw` The input shortwave radiation is net radiation. Otherwise, the input is downward shortwave radiation.
+
+`--netlw` The input longwave radiation is net radiation. Otherwise, the input is downward longwave radiation.
+
+`--netradiation` Both the input short- and longwave radiation are net radiation. Otherwise they may be specified individually.
+
 `--qdefnotneg` / `-Q` The Penman-Monteith calculation uses specific humidity, following Stewart (1989) [[3]](#references). The specific humidity at saturation is calculated using an empirical fit to vapour pressure at saturation [[4]](#references). In cases where the input specific humidity is greater than the calculated specific humidity at saturation, then this option can be used to set the humidity defecit to zero.
 
 `--co2filevaryr FILENAME VARNAME YEAR` / `-C FILENAME VARNAME YEAR` In order to account for the response of plant stomatal conductance to rising CO₂ levels, a fertilisation effect may be applied [[5]](#references) by using this option to specify 
@@ -51,8 +60,6 @@ The basic useage is
 - `YEAR` the year to use as the baseline (before which the stomatal conductance will not be adjusted).
 
 `--daynight` / `-D` The PET and PETI may be calcuated directly from daily mean values, or it may optionally be separated into daytime and nighttime components by applying a diurnal cycle [[6]](#references). This option `is not available if net radiation inputs are used. 
-
-`--fullout` / `-f` If `--daynight` is used, then this option will enable output of the day- and nighttime values, as well as the overall PET or PETI.
 
 `--zeroneg` / `-z` If the output PET or PETI is negative, this option will set all negative values to zero.
 
@@ -70,7 +77,7 @@ The basic useage is
 
 `--precipscalegridfilevarmn FILENAME VARNAME MNVARNAME` / `-G FILENAME VARNAME MNVARNAME` Applies a grid of monthly scale factors to the precipitation variable. The scale factors are defined in the file FILENAME, in the variable VARNAME. The variable containing the month is MNVARNAME.
 
-## Input variables
+## `make_pet` input variables
 
 Inputs to `make_pet` must be in netCDF format. Variables may all be in the same file, or may be in individual files, with file names tempated on the variable name `${varn}`. The code requires each variale to have the expected units. Some variables may be input in other units, and then a specified offset or scale factor applied. If the variable names are not specified, then a default value is used.
 
@@ -99,8 +106,24 @@ In addition, the names of some other variables may be required.
 
 `--gridmapvar VARNAME` Specifies the name of the grid mapping variable in the input file to ensure it is applied to the output netCDF file. If not specified, then the grid mapping variable is not used.
 
+## `combine_peti_components` useage
+
+The basic useage is
+
+`combine_peti_components COMPONENTFILETEMPLATE PRECIPFILENAME OUTFILENAME`
+
+where `COMPONENTFILETEMPLATE` contains monthly PET and PEI (usually an output file from `make_pet`), `PRECIPFILENAME` is the name of the file containing daily precipitation and `OUTFILENAME` is the name of the output file.
+
+## `combine_peti_components` input variables
+
+The PET and PEI components are assumed to be monthly mean values, in units of mm d⁻¹. The precipitation is specified as for `make_pet`, and may be scaled in the same way.
+
 ## Output files
-The output is written into netCDF files, the structure of which is copied from the input netCDF files. Extra options may be specified.
+The output of both `make_pet` and `combine_peti_components` is written into netCDF files, the structure of which is copied from the input netCDF files. Extra options may be specified.
+
+`--outputcomponents` / `-O` When using `--interception` with `make_pet`, this outputs the potential evapotranspiration (PET) and potential interception (PEI) separately, without accounting for the precipitation, instead of outputting the combined PETI. These can later be used as input to `combine_peti_components` to calculate PETI using a precipitation data set.
+
+`--fullout` / `-f` If `--daynight` is used, then this option will enable output of the day- and nighttime values, as well as the overall PET or PETI.
 
 `--version VERSION` / `-V VERSION` Version number to be written in the metadata of the output netCDF file. Default is v1.0.
 
