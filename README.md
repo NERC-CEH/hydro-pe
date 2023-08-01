@@ -31,7 +31,7 @@ Hydro-PE calculates Penman-Monteith potential evapotranspiration (PET) parameter
 
 In addition, a tool is provided to combine monthly potential evapotranspiration and potential interception rates with daily precipitation to calculate daily PETI. This is useful in cases where precipitation is available daily, but other variables are only available monthly, for example for some climate model outputs.
 
-## `make_pet` useage
+## Useage: `make_pet`
 
 The basic useage is
 
@@ -40,7 +40,7 @@ The basic useage is
 - `DATAFILETEMPLATE` is either the name of the single input file containing all the variables, or a template for the individual files containing the variables, with the variable name substituted with `${varn}`
 - `OUTFILENAME` is the name of the output file
 
-## Options
+## Options: `make_pet`
 
 `--interception` / `-i` The default behaviour is to calculate PET. This option enables the interception correction.
 
@@ -77,7 +77,7 @@ The basic useage is
 
 `--precipscalegridfilevarmn FILENAME VARNAME MNVARNAME` / `-G FILENAME VARNAME MNVARNAME` Applies a grid of monthly scale factors to the precipitation variable. The scale factors are defined in the file FILENAME, in the variable VARNAME. The variable containing the month is MNVARNAME.
 
-## `make_pet` input variables
+## Input variables: `make_pet`
 
 Inputs to `make_pet` must be in netCDF format. Variables may all be in the same file, or may be in individual files, with file names tempated on the variable name `${varn}`. The code requires each variale to have the expected units. Some variables may be input in other units, and then a specified offset or scale factor applied. If the variable names are not specified, then a default value is used.
 
@@ -106,7 +106,7 @@ In addition, the names of some other variables may be required.
 
 `--gridmapvar VARNAME` Specifies the name of the grid mapping variable in the input file to ensure it is applied to the output netCDF file. If not specified, then the grid mapping variable is not used.
 
-## `combine_peti_components` useage
+## Useage: `combine_peti_components`
 
 The basic useage is
 
@@ -114,7 +114,7 @@ The basic useage is
 
 where `COMPONENTFILETEMPLATE` contains monthly PET and PEI (usually an output file from `make_pet`), `PRECIPFILENAME` is the name of the file containing daily precipitation and `OUTFILENAME` is the name of the output file.
 
-## `combine_peti_components` input variables
+## Input variables: `combine_peti_components`
 
 The PET and PEI components are assumed to be monthly mean values, in units of mm d⁻¹. The precipitation is specified as for `make_pet`, and may be scaled in the same way.
 
