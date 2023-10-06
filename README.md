@@ -139,7 +139,7 @@ This work was supported by the Natural Environment Research Council award number
 
 # References
 
-[1] Robinson, E. L., Brown, M. J., Kay, A. L., Lane, R. A., Chapman, R., Bell, V. A., and Blyth, E. M.: Hydro-PE: gridded datasets of historical and future Penman-Monteith potential evaporation for the United Kingdom, Earth Syst. Sci. Data Discuss. [preprint], <https://doi.org/10.5194/essd-2022-288>, in review, 2022.
+[1] Robinson, E. L., Brown, M. J., Kay, A. L., Lane, R. A., Chapman, R., Bell, V. A., and Blyth, E. M.: Hydro-PE: gridded datasets of historical and future Penman-Monteith potential evaporation for the United Kingdom, Earth Syst. Sci. Data, 15, 4433–4461, https://doi.org/10.5194/essd-15-4433-2023, 2023
 
 [2] Hough, M., Palmer, S., Weir, A., Lee, M., and Barrie, I.: The Meteorological Office Rainfall and Evaporation Calculation System: MORECS version 2.0, An update to Hydrological Memorandum 45, Met Office, <https://digital.nmla.metoffice.gov.uk/IO_9d68dec6-8ad2-420b-a971-806f7a6987d8/>, 1997.
 
